@@ -8,3 +8,5 @@ wheels/
 
 # Virtual environments
 .venv
+posting-main/
+webhook.site-master/
