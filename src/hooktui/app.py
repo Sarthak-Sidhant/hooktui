@@ -2,13 +2,18 @@ import asyncio
 import uvicorn
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Footer, ListView, Label
+from textual.widgets import Footer, ListView, Label, ContentSwitcher
 from textual.containers import Horizontal
 
 from hooktui.server import create_app
 from hooktui.models import ServerConfig, WebhookReceived, WebhookRequest
-from hooktui.components import Sidebar, RequestDetails, RequestListItem
+from hooktui.components import Sidebar, RequestDetails, RequestListItem, InfoConfigView
 from hooktui.themes import HOOKTUI_THEMES
+from hooktui import db
+from hooktui.config import load_settings
+from hooktui.dns_server import start_dns_server
+from hooktui.smtp_server import start_smtp_server
+from typing import Any
 
 
 class HookTUIApp(App):
@@ -39,6 +44,9 @@ class HookTUIApp(App):
         self._requests: list[WebhookRequest] = []
         self._theme_names = list(HOOKTUI_THEMES.keys())
         self._theme_index = 0
+        self.app_settings = load_settings()
+        self._dns_transport: Any = None
+        self._smtp_controller: Any = None
 
     def compose(self) -> ComposeResult:
         yield Horizontal(
@@ -52,15 +60,47 @@ class HookTUIApp(App):
         )
         yield Horizontal(
             Sidebar(id="sidebar"),
-            RequestDetails(id="main-panel"),
+            ContentSwitcher(
+                RequestDetails(id="request-details"),
+                InfoConfigView(id="info-config"),
+                id="main-panel",
+                initial="request-details",
+            ),
             id="app-body",
         )
         yield Footer()
 
     async def on_mount(self) -> None:
+        db.init_db()
+        self._requests = db.get_all_requests()
+
+        lv = self.query_one("#request-list", ListView)
+        for req in self._requests:
+            lv.append(RequestListItem(req))
+        self.query_one("#sidebar", Sidebar).update_count(len(self._requests))
+        if self._requests:
+            try:
+                self.query_one("#empty-label").display = False
+            except Exception:
+                pass
+
         for theme in HOOKTUI_THEMES.values():
             self.register_theme(theme)
         self.theme = "galaxy"
+
+        if self.app_settings.enable_dns:
+            try:
+                self._dns_transport = await start_dns_server(self, port=self.app_settings.dns_port)
+                self.notify(f"DNS Sinkhole listening on :{self.app_settings.dns_port}", severity="information")
+            except Exception as e:
+                self.notify(f"DNS Server failed: {e}", severity="error")
+                
+        if self.app_settings.enable_email:
+            try:
+                self._smtp_controller = await start_smtp_server(self, port=self.app_settings.smtp_port)
+                self.notify(f"SMTP Inbox listening on :{self.app_settings.smtp_port}", severity="information")
+            except Exception as e:
+                self.notify(f"SMTP Server failed: {e}", severity="error")
 
         fastapi_app = create_app(self)
         config = uvicorn.Config(
@@ -72,9 +112,16 @@ class HookTUIApp(App):
         server = uvicorn.Server(config)
         self._server_task = asyncio.create_task(server.serve())
 
+    async def on_unmount(self) -> None:
+        if getattr(self, "_dns_transport", None):
+            self._dns_transport.close()
+        if getattr(self, "_smtp_controller", None):
+            self._smtp_controller.stop()
+
     # ── Webhook events ──
 
     def on_webhook_received(self, event: WebhookReceived) -> None:
+        db.save_request(event.request)
         self._requests.append(event.request)
         lv = self.query_one("#request-list", ListView)
         item = RequestListItem(event.request)
@@ -88,14 +135,25 @@ class HookTUIApp(App):
             pass
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
-        self._update_details(event.item)
+        if event.list_view.id == "nav-list":
+            # Pressed the "Info & Config" button
+            self.query_one("#main-panel", ContentSwitcher).current = "info-config"
+            # Deselect the main request list if any was active
+            self.query_one("#request-list", ListView).index = None
+        elif event.list_view.id == "request-list":
+            self._update_details(event.item)
+            self.query_one("#main-panel", ContentSwitcher).current = "request-details"
+            self.query_one("#nav-list", ListView).index = None
 
     def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
-        if event.item:
+        if event.list_view.id == "nav-list" and event.item:
+            self.query_one("#main-panel", ContentSwitcher).current = "info-config"
+        elif event.list_view.id == "request-list" and event.item:
             self._update_details(event.item)
+            self.query_one("#main-panel", ContentSwitcher).current = "request-details"
 
     def _update_details(self, item: RequestListItem) -> None:
-        self.query_one("#main-panel", RequestDetails).current_request = item.request
+        self.query_one("#request-details", RequestDetails).current_request = item.request
 
     # ── Navigation ──
 
@@ -122,6 +180,7 @@ class HookTUIApp(App):
     # ── Data actions ──
 
     def action_clear_requests(self) -> None:
+        db.clear_requests()
         self._requests.clear()
         lv = self.query_one("#request-list", ListView)
         lv.clear()
@@ -136,6 +195,8 @@ class HookTUIApp(App):
     def action_delete_selected(self) -> None:
         lv = self.query_one("#request-list", ListView)
         if lv.index is not None and 0 <= lv.index < len(self._requests):
+            req_id = self._requests[lv.index].id
+            db.delete_request(req_id)
             self._requests.pop(lv.index)
             lv.pop(lv.index)
             self.query_one("#sidebar", Sidebar).update_count(len(self._requests))

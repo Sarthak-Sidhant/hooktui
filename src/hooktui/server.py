@@ -1,6 +1,6 @@
 import uuid
 from typing import Any
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from textual.app import App as TextualApp
 from hooktui.models import WebhookRequest
 
@@ -27,6 +27,13 @@ def create_app(tui_app: TextualApp) -> FastAPI:
         from hooktui.models import WebhookReceived
         tui_app.post_message(WebhookReceived(request=webhook_req))
 
+        settings = getattr(tui_app, "app_settings", None)
+        if settings:
+            return Response(
+                content=settings.response_body,
+                status_code=settings.response_code,
+                media_type=settings.response_content_type,
+            )
         return {"status": "ok", "message": "Webhook received by HookTUI."}
 
     return app

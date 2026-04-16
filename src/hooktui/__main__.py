@@ -2,8 +2,8 @@
 from hooktui.app import HookTUIApp
 
 def main():
-    app = HookTUIApp()
-    app.run()
+    from hooktui.app import main as app_main
+    app_main()
 
 if __name__ == "__main__":
     main()

@@ -3,6 +3,19 @@ revision = 3
 requires-python = ">=3.13"
 
 [[package]]
+name = "aiosmtpd"
+version = "1.4.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "atpublic" },
+    { name = "attrs" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c4/ca/b2b7cc880403ef24be77383edaadfcf0098f5d7b9ddbf3e2c17ef0a6af0d/aiosmtpd-1.4.6.tar.gz", hash = "sha256:5a811826e1a5a06c25ebc3e6c4a704613eb9a1bcf6b78428fbe865f4f6c9a4b8", size = 152775, upload-time = "2024-05-18T11:37:50.029Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/39/d401756df60a8344848477d54fdf4ce0f50531f6149f3b8eaae9c06ae3dc/aiosmtpd-1.4.6-py3-none-any.whl", hash = "sha256:72c99179ba5aa9ae0abbda6994668239b64a5ce054471955fe75f581d2592475", size = 154263, upload-time = "2024-05-18T11:37:47.877Z" },
+]
+
+[[package]]
 name = "annotated-doc"
 version = "0.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -30,6 +43,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/96/f0/5eb65b2bb0d09ac6776f2eb54adee6abe8228ea05b20a5ad0e4945de8aac/anyio-4.12.1.tar.gz", hash = "sha256:41cfcc3a4c85d3f05c932da7c26d0201ac36f72abd4435ba90d0464a3ffed703", size = 228685, upload-time = "2026-01-06T11:45:21.246Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/38/0e/27be9fdef66e72d64c0cdc3cc2823101b80585f8119b5c112c2e8f5f7dab/anyio-4.12.1-py3-none-any.whl", hash = "sha256:d405828884fc140aa80a3c667b8beed277f1dfedec42ba031bd6ac3db606ab6c", size = 113592, upload-time = "2026-01-06T11:45:19.497Z" },
+]
+
+[[package]]
+name = "atpublic"
+version = "7.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/05/e2e131a0debaf0f01b8a1b586f5f11713f6affc3e711b406f15f11eafc92/atpublic-7.0.0.tar.gz", hash = "sha256:466ef10d0c8bbd14fd02a5fbd5a8b6af6a846373d91106d3a07c16d72d96b63e", size = 17801, upload-time = "2025-11-29T05:56:45.45Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/96/c0/271f3e1e3502a8decb8ee5c680dbed2d8dc2cd504f5e20f7ed491d5f37e1/atpublic-7.0.0-py3-none-any.whl", hash = "sha256:6702bd9e7245eb4e8220a3e222afcef7f87412154732271ee7deee4433b72b4b", size = 6421, upload-time = "2025-11-29T05:56:44.604Z" },
+]
+
+[[package]]
+name = "attrs"
+version = "25.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6b/5c/685e6633917e101e5dcb62b9dd76946cbb57c26e133bae9e0cd36033c0a9/attrs-25.4.0.tar.gz", hash = "sha256:16d5969b87f0859ef33a48b35d55ac1be6e42ae49d5e853b597db70c35c57e11", size = 934251, upload-time = "2025-10-06T13:54:44.725Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3a/2a/7cc015f5b9f5db42b7d48157e23356022889fc354a2813c15934b7cb5c0e/attrs-25.4.0-py3-none-any.whl", hash = "sha256:adcf7e2a1fb3b36ac48d97835bb6d8ade15b8dcce26aba8bf1d14847b57a3373", size = 67615, upload-time = "2025-10-06T13:54:43.17Z" },
 ]
 
 [[package]]
@@ -63,6 +94,15 @@ wheels = [
 ]
 
 [[package]]
+name = "dnslib"
+version = "0.9.26"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/71/269f74ef9bc8ca453af2e1768d4f4c8e7ef5f894d058d27fd1b69c754d7f/dnslib-0.9.26.tar.gz", hash = "sha256:be56857534390b2fbd02935270019bacc5e6b411d156cb3921ac55a7fb51f1a8", size = 82901, upload-time = "2025-03-03T09:17:32.606Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/16/93/167364f10194e374119b211e475ed8763d7591ae4f7001b304282dde5825/dnslib-0.9.26-py3-none-any.whl", hash = "sha256:e68719e633d761747c7e91bd241019ef5a2b61a63f56025939e144c841a70e0d", size = 64161, upload-time = "2025-03-03T09:17:31.47Z" },
+]
+
+[[package]]
 name = "fastapi"
 version = "0.135.1"
 source = { registry = "https://pypi.org/simple" }
@@ -92,6 +132,8 @@ name = "hooktui"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "aiosmtpd" },
+    { name = "dnslib" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "textual" },
@@ -100,6 +142,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiosmtpd", specifier = ">=1.4.6" },
+    { name = "dnslib", specifier = ">=0.9.24" },
     { name = "fastapi", specifier = ">=0.135.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "textual", specifier = ">=8.0.2" },

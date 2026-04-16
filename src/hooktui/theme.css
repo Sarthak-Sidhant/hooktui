@@ -172,6 +172,16 @@ ListItem.-highlight {
     background: #e67e22;
 }
 
+.method-DNS {
+    color: $background;
+    background: #e84393;
+}
+
+.method-SMTP {
+    color: $background;
+    background: #00cec9;
+}
+
 .req-id-ip {
     color: $foreground;
     width: 1fr;
@@ -335,4 +345,109 @@ RichLog:focus {
 /* ── General scrollable ─────────────────────────────── */
 VerticalScroll {
     background: transparent;
+}
+
+InfoConfigView {
+    background: $surface-darken-1;
+    height: 100%;
+    border-left: vkey $surface-lighten-1;
+}
+
+#config-title {
+    width: 100%;
+    padding: 1 2;
+    background: $panel;
+    color: $foreground;
+    text-style: bold;
+    border-bottom: inner $surface-lighten-1;
+}
+
+.config-section-title {
+    color: $primary;
+    text-style: bold;
+    margin-top: 1;
+    margin-bottom: 1;
+    width: 100%;
+    border-bottom: dashed $surface-lighten-1;
+}
+
+.config-label-top {
+    color: $text-muted;
+    text-style: b;
+    margin-top: 1;
+}
+
+.config-input {
+    width: 100%;
+    margin-bottom: 1;
+    border: tall $surface-lighten-1;
+}
+
+.config-input:focus {
+    border: tall $primary;
+}
+
+.config-textarea {
+    height: 10;
+    margin-bottom: 1;
+    border: tall $surface-lighten-1;
+}
+
+.config-textarea:focus {
+    border: tall $primary;
+}
+
+.config-row-toggle {
+    height: 3;
+    align: left middle;
+    margin-bottom: 1;
+    background: $surface 30%;
+    padding: 0 1;
+}
+
+.config-label-toggle {
+    width: auto;
+    color: $text-muted;
+    padding-right: 1;
+    padding-left: 2;
+}
+
+.config-input-small {
+    width: 12;
+    height: 3;
+    border: none;
+    background: $surface;
+}
+
+#config-buttons {
+    height: auto;
+    margin-top: 2;
+    margin-bottom: 2;
+    align: right middle;
+}
+
+#btn-save,
+#btn-cancel {
+    margin-left: 1;
+    min-width: 12;
+}
+
+/* ── Custom Nav Buttons ── */
+#nav-list {
+    height: 1;
+    background: $panel;
+    color: $foreground;
+    margin-bottom: 1;
+}
+
+.config-nav-btn {
+    text-align: center;
+    width: 100%;
+    color: $text;
+}
+
+.sidebar-divider {
+    color: $text-muted;
+    text-align: center;
+    width: 100%;
 }

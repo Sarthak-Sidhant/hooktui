@@ -1,7 +1,8 @@
 from textual.app import ComposeResult
 from textual.containers import VerticalScroll, Horizontal, Vertical
-from textual.widgets import Static, ListView, ListItem, Label, Collapsible, RichLog, DataTable
+from textual.widgets import Static, ListView, ListItem, Label, Collapsible, RichLog, DataTable, Input, Switch, Button, TextArea
 from textual.reactive import reactive
+from hooktui.config import load_settings, save_settings, AppSettings
 
 from hooktui.models import WebhookRequest
 import json
@@ -39,6 +40,11 @@ class Sidebar(Vertical):
             Label("(0)", id="inbox-count"),
             id="inbox-header",
         )
+        yield ListView(
+            ListItem(Label(" [b]⚙[/b] Info & Config", classes="config-nav-btn"), id="nav-config"),
+            id="nav-list"
+        )
+        yield Label("  --- Requests ---", classes="sidebar-divider")
         yield ListView(id="request-list")
         yield Label("  Waiting for webhooks…", id="empty-label")
 
@@ -164,3 +170,117 @@ class RequestDetails(VerticalScroll):
                 body_log.write(request.body)
         else:
             body_log.write("(empty body)")
+
+class InfoConfigView(VerticalScroll):
+    """The new inline Configuration and Endpoint Info panel, replacing the modal."""
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.settings = load_settings()
+
+    def compose(self) -> ComposeResult:
+        yield Label("  Configuration & Endpoints", id="config-title")
+        
+        # ── Section 1: Unique Endpoints ──
+        with Collapsible(title="Your Unique Endpoints", collapsed=False, id="section-endpoints"):
+            yield Vertical(
+                Horizontal(Label(" HTTP", classes="meta-key"), Label(f"http://{self.settings.base_domain}/{self.settings.app_uuid}", classes="meta-val"), classes="meta-row"),
+                Horizontal(Label(" Email", classes="meta-key"), Label(f"{self.settings.app_uuid}@{self.settings.email_domain}", classes="meta-val"), classes="meta-row"),
+                Horizontal(Label(" DNS", classes="meta-key"), Label(f"{self.settings.app_uuid}.{self.settings.dns_domain}", classes="meta-val"), classes="meta-row"),
+                id="meta-container",
+            )
+            
+        # ── Section 2: Custom Domains ──
+        with Collapsible(title="Custom Domains", collapsed=False, id="section-domains"):
+            yield Label("Base Domain:", classes="config-label-top")
+            yield Input(value=self.settings.base_domain, id="input-base-domain", classes="config-input")
+            
+            yield Label("Email Domain:", classes="config-label-top")
+            yield Input(value=self.settings.email_domain, id="input-email-domain", classes="config-input")
+            
+            yield Label("DNS Domain:", classes="config-label-top")
+            yield Input(value=self.settings.dns_domain, id="input-dns-domain", classes="config-input")
+
+        # ── Section 3: HTTP Response Settings ──
+        with Collapsible(title="HTTP Response Settings", collapsed=False, id="section-response"):
+            yield Label("Status Code:", classes="config-label-top")
+            yield Input(value=str(self.settings.response_code), type="integer", id="input-status", classes="config-input")
+            
+            yield Label("Content Type:", classes="config-label-top")
+            yield Input(value=self.settings.response_content_type, id="input-ct", classes="config-input")
+            
+            yield Label("Response Body:", classes="config-label-top")
+            yield TextArea(text=self.settings.response_body, language="json", id="input-body", classes="config-textarea")
+            
+        # ── Section 4: Module Listeners ──
+        with Collapsible(title="Module Listeners (Requires Restart)", collapsed=False, id="section-modules"):
+            with Horizontal(classes="config-row-toggle"):
+                yield Label("DNS Sinkhole:", classes="config-label-toggle")
+                yield Switch(value=self.settings.enable_dns, id="switch-dns")
+                yield Label("Port:", classes="config-label-toggle")
+                yield Input(value=str(self.settings.dns_port), type="integer", id="input-dns-port", classes="config-input-small")
+
+            with Horizontal(classes="config-row-toggle"):
+                yield Label("Email Inbox:", classes="config-label-toggle")
+                yield Switch(value=self.settings.enable_email, id="switch-email")
+                yield Label("Port:", classes="config-label-toggle")
+                yield Input(value=str(self.settings.smtp_port), type="integer", id="input-smtp-port", classes="config-input-small")
+        
+        with Horizontal(id="config-buttons"):
+            yield Button("Save Defaults", variant="success", id="btn-save")
+
+    def on_mount(self) -> None:
+        self.border_title = "Info & Config"
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn-save":
+            self.save_settings_data()
+
+    def save_settings_data(self) -> None:
+        try:
+            code = int(self.query_one("#input-status", Input).value)
+        except ValueError:
+            code = 200
+            
+        try:
+            dns_port = int(self.query_one("#input-dns-port", Input).value)
+        except ValueError:
+            dns_port = 5333
+
+        try:
+            smtp_port = int(self.query_one("#input-smtp-port", Input).value)
+        except ValueError:
+            smtp_port = 2525
+            
+        new_settings = AppSettings(
+            app_uuid=self.settings.app_uuid,
+            base_domain=self.query_one("#input-base-domain", Input).value,
+            dns_domain=self.query_one("#input-dns-domain", Input).value,
+            email_domain=self.query_one("#input-email-domain", Input).value,
+            response_code=code,
+            response_content_type=self.query_one("#input-ct", Input).value,
+            response_body=self.query_one("#input-body", TextArea).text,
+            enable_dns=self.query_one("#switch-dns", Switch).value,
+            dns_port=dns_port,
+            enable_email=self.query_one("#switch-email", Switch).value,
+            smtp_port=smtp_port,
+        )
+        save_settings(new_settings)
+        self.settings = new_settings
+        self.app.app_settings = new_settings
+        self.app.notify("Settings saved! Restart to apply port/listener changes.", severity="success")
+        
+        # Fresh redraw of the layout text
+        self.query_one("#section-endpoints", Collapsible).remove()
+        self.mount(
+            Collapsible(
+                Vertical(
+                    Horizontal(Label(" HTTP", classes="meta-key"), Label(f"http://{self.settings.base_domain}/{self.settings.app_uuid}", classes="meta-val"), classes="meta-row"),
+                    Horizontal(Label(" Email", classes="meta-key"), Label(f"{self.settings.app_uuid}@{self.settings.email_domain}", classes="meta-val"), classes="meta-row"),
+                    Horizontal(Label(" DNS", classes="meta-key"), Label(f"{self.settings.app_uuid}.{self.settings.dns_domain}", classes="meta-val"), classes="meta-row"),
+                    id="meta-container",
+                ),
+                title="Your Unique Endpoints", collapsed=False, id="section-endpoints"
+            ),
+            after="#config-title"
+        )
